@@ -11,7 +11,7 @@ function draw()
     --imgui.Text(debug)
     imgui.Text(#state.SelectedHitObjects .. " hit objects selected")
     
-    _, displacement = imgui.InputInt("Displacement", displacement)
+    _, displacement = imgui.InputFloat("Displacement", displacement, 1)
     tooltip("Distance to displace selected hit objects by\n1 unit = 1 ms at 1x SV")
     
     if imgui.Button("Displace") then displace(displacement) end
