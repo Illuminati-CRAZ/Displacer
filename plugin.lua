@@ -1,4 +1,5 @@
 SV_INCREMENT = .125
+USE_TIME = false
 --debug = "hi"
 
 function draw()
@@ -12,10 +13,26 @@ function draw()
     --imgui.Text(debug)
     imgui.Text(#state.SelectedHitObjects .. " hit objects selected")
 
-    _, displacement = imgui.InputFloat("Displacement", displacement, 1)
+    if USE_TIME then
+        if imgui.Button("Current") then displacement = state.SongTime end
+        imgui.SameLine()
+    end
+    _, displacement = imgui.InputInt(getDisplacementText(), displacement)
     tooltip("Distance to displace selected hit objects by\n1 unit = 1 ms at 1x SV")
 
-    if imgui.Button("Displace") then displace(displacement) end
+    if imgui.Button("Displace") then 
+        if USE_TIME then
+            local origin = GetPositionFromTime(state.SelectedHitObjects[1].StartTime)
+            local dest = GetPositionFromTime(displacement) --displacement is time when USE_TIME == true
+            displace((dest - origin) / 100)
+        else
+            displace(displacement)
+        end
+    end
+    
+    imgui.SameLine()
+    _, USE_TIME = imgui.Checkbox("Displace to given time?", USE_TIME)
+    
     if imgui.Button("Clean SVs") then cleanSV() end
     tooltip("Removes redundant SVs")
 
@@ -23,6 +40,10 @@ function draw()
 
     if #action_queue > 0 then actions.PerformBatch(action_queue) end
     imgui.End()
+end
+
+function getDisplacementText()
+    return USE_TIME and "Time" or "Displacement"
 end
 
 function queue(type, arg1, arg2, arg3, arg4)
@@ -82,4 +103,36 @@ function tooltip(text)
         imgui.Text(text)
         imgui.EndTooltip()
     end
+end
+
+function GetPositionFromTime(time)
+    --[[
+        if using this function multiple times in one frame,
+        it may be faster to set ScrollVelocities = map.ScrollVelocities in draw()
+        and then set local svs = ScrollVelocities inside this function
+    ]]
+    local svs = map.ScrollVelocities
+
+    if #svs == 0 or time < svs[1].StartTime then
+        return math.floor(time * 100)
+    end
+
+    local position = math.floor(svs[1].StartTime * 100)
+
+    local i = 2
+
+    while i <= #svs do
+        if time < svs[i].StartTime then
+            break
+        else
+            position = position + math.floor((svs[i].StartTime - svs[i - 1].StartTime) * svs[i - 1].Multiplier * 100)
+        end
+
+        i = i + 1
+    end
+
+    i = i - 1
+
+    position = position + math.floor((time - svs[i].StartTime) * svs[i].Multiplier * 100)
+    return position
 end
