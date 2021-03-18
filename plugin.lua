@@ -148,12 +148,17 @@ end
 function cleanSV()
     local svs = map.ScrollVelocities
     local prevmult = 1
+    local prevtime = -1e304
 
-    for _, sv in pairs(svs) do
+    for i, sv in pairs(svs) do
         if sv.Multiplier == prevmult then
             table.insert(remove_sv_queue, sv)
+        elseif sv.StartTime == prevtime then
+            table.insert(remove_sv_queue, svs[i - 1])
         end
+        
         prevmult = sv.Multiplier
+        prevtime = sv.StartTime
     end
 end
 
